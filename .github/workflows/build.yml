@@ -1,0 +1,50 @@
+name: Build GKI Module
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y bc bison flex libssl-dev libelf-dev dwarves
+
+      - name: Clone kernel source (cocok dgn versi 6.12.38)
+        run: |
+          git clone --depth 1 -b android16-6.12-2025-09_r16 \
+            https://android.googlesource.com/kernel/common kernel-src
+
+      - name: Download Clang toolchain
+        run: |
+          mkdir clang
+          curl -L -o clang.tar.gz \
+            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r536225.tar.gz"
+          tar -xzf clang.tar.gz -C clang
+
+      - name: Pasang config & samakan suffix versi
+        run: |
+          cp running-config kernel-src/.config
+          cd kernel-src
+          sed -i '/CONFIG_LOCALVERSION=/d;/CONFIG_LOCALVERSION_AUTO/d' .config
+          echo 'CONFIG_LOCALVERSION="-android16-5-gb575a0b6e647-ab14355190-4"' >> .config
+          echo 'CONFIG_LOCALVERSION_AUTO=n' >> .config
+
+      - name: modules_prepare
+        run: |
+          export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
+          cd kernel-src
+          make ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 olddefconfig
+          make ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 modules_prepare
+
+      - name: Build hello.ko
+        run: |
+          export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
+          make -C kernel-src M=$GITHUB_WORKSPACE/module ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 modules
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hello-ko
+          path: module/hello.ko
