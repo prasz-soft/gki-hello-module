@@ -32,12 +32,12 @@ jobs:
           echo 'CONFIG_LOCALVERSION="-android16-5-gb575a0b6e647-ab14355190-4"' >> .config
           echo 'CONFIG_LOCALVERSION_AUTO=n' >> .config
 
-      - name: modules_prepare
+      - name: Build vmlinux (hasilkan Module.symvers lengkap)
         run: |
           export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
           cd kernel-src
           make ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 olddefconfig
-          make ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 modules_prepare
+          make ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 -j$(nproc)
 
       - name: Build hello.ko
         run: |
