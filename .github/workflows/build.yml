@@ -42,8 +42,9 @@ jobs:
       - name: Build hello.ko
         run: |
           export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
+          touch kernel-src/protected_module_names_list
           make -C kernel-src M=$GITHUB_WORKSPACE/module ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 modules
-
+          
       - uses: actions/upload-artifact@v4
         with:
           name: hello-ko
